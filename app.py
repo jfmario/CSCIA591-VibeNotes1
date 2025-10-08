@@ -311,6 +311,104 @@ def view_note(note_id):
 		return render_template('note_detail.html', note=note)
 
 
+@app.route('/notes/<int:note_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_note(note_id):
+		"""Edit an existing note"""
+		conn = get_db_connection()
+		cur = conn.cursor()
+		
+		# Get the note
+		cur.execute(
+				'SELECT id, user_id, title, content FROM notes WHERE id = %s',
+				(note_id,)
+		)
+		note = cur.fetchone()
+		
+		if not note:
+				cur.close()
+				conn.close()
+				flash('Note not found', 'error')
+				return redirect(url_for('notes'))
+		
+		# Check if user owns this note
+		if note['user_id'] != session['user_id']:
+				cur.close()
+				conn.close()
+				flash('You do not have permission to edit this note', 'error')
+				return redirect(url_for('notes'))
+		
+		if request.method == 'POST':
+				title = request.form.get('title', '').strip()
+				content = request.form.get('content', '').strip()
+				
+				# Validation
+				if not title:
+						flash('Title is required', 'error')
+						cur.close()
+						conn.close()
+						return render_template('edit_note.html', note=note)
+				
+				if len(title) > 200:
+						flash('Title must be 200 characters or less', 'error')
+						cur.close()
+						conn.close()
+						return render_template('edit_note.html', note=note)
+				
+				# Update the note
+				cur.execute(
+						'UPDATE notes SET title = %s, content = %s, updated_at = CURRENT_TIMESTAMP WHERE id = %s',
+						(title, content, note_id)
+				)
+				conn.commit()
+				cur.close()
+				conn.close()
+				
+				flash('Note updated successfully!', 'success')
+				return redirect(url_for('view_note', note_id=note_id))
+		
+		cur.close()
+		conn.close()
+		return render_template('edit_note.html', note=note)
+
+
+@app.route('/notes/<int:note_id>/delete', methods=['POST'])
+@login_required
+def delete_note(note_id):
+		"""Delete a note"""
+		conn = get_db_connection()
+		cur = conn.cursor()
+		
+		# Get the note
+		cur.execute(
+				'SELECT id, user_id FROM notes WHERE id = %s',
+				(note_id,)
+		)
+		note = cur.fetchone()
+		
+		if not note:
+				cur.close()
+				conn.close()
+				flash('Note not found', 'error')
+				return redirect(url_for('notes'))
+		
+		# Check if user owns this note
+		if note['user_id'] != session['user_id']:
+				cur.close()
+				conn.close()
+				flash('You do not have permission to delete this note', 'error')
+				return redirect(url_for('notes'))
+		
+		# Delete the note
+		cur.execute('DELETE FROM notes WHERE id = %s', (note_id,))
+		conn.commit()
+		cur.close()
+		conn.close()
+		
+		flash('Note deleted successfully!', 'success')
+		return redirect(url_for('notes'))
+
+
 if __name__ == '__main__':
 		app.run(debug=True)
 

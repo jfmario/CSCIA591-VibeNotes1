@@ -8,6 +8,8 @@ A simple web application for note-taking with user authentication built with Fla
 - User login and logout functionality
 - **Notes Management:**
   - Create notes with title and content
+  - Edit your existing notes
+  - Delete notes with confirmation
   - View all your notes in a grid layout
   - View detailed note pages
   - Notes are sorted by most recently updated
@@ -130,6 +132,7 @@ VibeNotes1/
     ├── users.html        # Users list page
     ├── notes.html        # Notes list page
     ├── create_note.html  # Create note form
+    ├── edit_note.html    # Edit note form
     └── note_detail.html  # Note detail view page
 ```
 
