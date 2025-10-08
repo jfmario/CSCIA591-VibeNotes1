@@ -12,6 +12,16 @@
 				<div class="quick-actions">
 						<h3>Quick Actions</h3>
 						<div class="action-buttons">
+								<a href="{{ url_for('notes') }}" class="action-card">
+										<div class="action-icon">📝</div>
+										<h4>My Notes</h4>
+										<p>View and manage your notes</p>
+								</a>
+								<a href="{{ url_for('create_note') }}" class="action-card">
+										<div class="action-icon">✏️</div>
+										<h4>Create Note</h4>
+										<p>Write a new note</p>
+								</a>
 								<a href="{{ url_for('profile') }}" class="action-card">
 										<div class="action-icon">👤</div>
 										<h4>My Profile</h4>

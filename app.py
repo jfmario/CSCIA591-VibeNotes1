@@ -234,6 +234,83 @@ def view_user(user_id):
 		return render_template('profile.html', user=user, is_own_profile=is_own_profile)
 
 
+@app.route('/notes')
+@login_required
+def notes():
+		"""List all notes for the current user"""
+		conn = get_db_connection()
+		cur = conn.cursor()
+		cur.execute(
+				'SELECT id, title, content, created_at, updated_at FROM notes WHERE user_id = %s ORDER BY updated_at DESC',
+				(session['user_id'],)
+		)
+		user_notes = cur.fetchall()
+		cur.close()
+		conn.close()
+		return render_template('notes.html', notes=user_notes)
+
+
+@app.route('/notes/create', methods=['GET', 'POST'])
+@login_required
+def create_note():
+		"""Create a new note"""
+		if request.method == 'POST':
+				title = request.form.get('title', '').strip()
+				content = request.form.get('content', '').strip()
+				
+				# Validation
+				if not title:
+						flash('Title is required', 'error')
+						return render_template('create_note.html')
+				
+				if len(title) > 200:
+						flash('Title must be 200 characters or less', 'error')
+						return render_template('create_note.html')
+				
+				# Create new note
+				conn = get_db_connection()
+				cur = conn.cursor()
+				cur.execute(
+						'INSERT INTO notes (user_id, title, content) VALUES (%s, %s, %s) RETURNING id',
+						(session['user_id'], title, content)
+				)
+				note_id = cur.fetchone()['id']
+				conn.commit()
+				cur.close()
+				conn.close()
+				
+				flash('Note created successfully!', 'success')
+				return redirect(url_for('view_note', note_id=note_id))
+		
+		return render_template('create_note.html')
+
+
+@app.route('/notes/<int:note_id>')
+@login_required
+def view_note(note_id):
+		"""View a specific note"""
+		conn = get_db_connection()
+		cur = conn.cursor()
+		cur.execute(
+				'SELECT id, user_id, title, content, created_at, updated_at FROM notes WHERE id = %s',
+				(note_id,)
+		)
+		note = cur.fetchone()
+		cur.close()
+		conn.close()
+		
+		if not note:
+				flash('Note not found', 'error')
+				return redirect(url_for('notes'))
+		
+		# Check if user owns this note
+		if note['user_id'] != session['user_id']:
+				flash('You do not have permission to view this note', 'error')
+				return redirect(url_for('notes'))
+		
+		return render_template('note_detail.html', note=note)
+
+
 if __name__ == '__main__':
 		app.run(debug=True)
 

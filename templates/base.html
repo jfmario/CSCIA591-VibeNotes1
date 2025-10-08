@@ -13,6 +13,7 @@
 						{% if session.get('user_id') %}
 						<nav>
 								<a href="{{ url_for('index') }}" class="nav-link">Home</a>
+								<a href="{{ url_for('notes') }}" class="nav-link">My Notes</a>
 								<a href="{{ url_for('users') }}" class="nav-link">Users</a>
 								<a href="{{ url_for('profile') }}" class="nav-link">My Profile</a>
 								<span class="nav-welcome">{{ session.get('username') }}</span>

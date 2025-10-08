@@ -538,9 +538,226 @@ footer {
 		color: #999;
 }
 
+/* Notes Page */
+.notes-container {
+		width: 100%;
+		max-width: 1000px;
+		margin: 0 auto;
+}
+
+.notes-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 2rem;
+		background: white;
+		padding: 2rem;
+		border-radius: 12px;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.notes-header h2 {
+		color: #667eea;
+		font-size: 2rem;
+		margin: 0;
+}
+
+.notes-header .btn {
+		width: auto;
+}
+
+.notes-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+		gap: 1.5rem;
+}
+
+.note-card {
+		background: white;
+		border: 2px solid #e0e0e0;
+		border-radius: 10px;
+		padding: 1.5rem;
+		transition: all 0.3s;
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.note-card:hover {
+		border-color: #667eea;
+		box-shadow: 0 4px 16px rgba(102, 126, 234, 0.2);
+		transform: translateY(-3px);
+}
+
+.note-link {
+		text-decoration: none;
+		color: inherit;
+		display: block;
+}
+
+.note-card h3 {
+		color: #667eea;
+		margin-bottom: 0.75rem;
+		font-size: 1.3rem;
+		word-wrap: break-word;
+}
+
+.note-preview {
+		color: #666;
+		font-size: 0.95rem;
+		line-height: 1.6;
+		margin-bottom: 1rem;
+		min-height: 3rem;
+}
+
+.note-preview.empty {
+		font-style: italic;
+		color: #999;
+}
+
+.note-meta {
+		padding-top: 0.75rem;
+		border-top: 1px solid #f0f0f0;
+}
+
+.note-date {
+		font-size: 0.85rem;
+		color: #888;
+}
+
+/* Empty State */
+.empty-state {
+		background: white;
+		padding: 4rem 2rem;
+		border-radius: 12px;
+		text-align: center;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.empty-icon {
+		font-size: 5rem;
+		margin-bottom: 1rem;
+}
+
+.empty-state h3 {
+		color: #667eea;
+		font-size: 1.8rem;
+		margin-bottom: 0.5rem;
+}
+
+.empty-state p {
+		color: #666;
+		font-size: 1.1rem;
+		margin-bottom: 2rem;
+}
+
+/* Note Form */
+.note-form-container {
+		width: 100%;
+		max-width: 800px;
+		margin: 0 auto;
+}
+
+.note-form-box {
+		background: white;
+		padding: 2.5rem;
+		border-radius: 12px;
+		box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.note-form-box h2 {
+		color: #667eea;
+		margin-bottom: 2rem;
+		font-size: 2rem;
+		text-align: center;
+}
+
+.note-form .form-group textarea {
+		width: 100%;
+		padding: 0.75rem;
+		border: 2px solid #e0e0e0;
+		border-radius: 6px;
+		font-size: 1rem;
+		font-family: inherit;
+		resize: vertical;
+		transition: border-color 0.3s;
+}
+
+.note-form .form-group textarea:focus {
+		outline: none;
+		border-color: #667eea;
+}
+
+/* Note Detail */
+.note-detail-container {
+		width: 100%;
+		max-width: 900px;
+		margin: 0 auto;
+}
+
+.note-detail-box {
+		background: white;
+		padding: 3rem;
+		border-radius: 12px;
+		box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.note-detail-header {
+		border-bottom: 2px solid #f0f0f0;
+		padding-bottom: 1.5rem;
+		margin-bottom: 2rem;
+}
+
+.note-detail-header h2 {
+		color: #667eea;
+		font-size: 2.2rem;
+		margin-bottom: 1rem;
+		word-wrap: break-word;
+}
+
+.note-detail-meta {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+}
+
+.meta-item {
+		color: #888;
+		font-size: 0.9rem;
+}
+
+.note-detail-content {
+		margin-bottom: 2rem;
+}
+
+.note-content-display {
+		color: #444;
+		font-size: 1.1rem;
+		line-height: 1.8;
+		padding: 1.5rem;
+		background: #f8f9fa;
+		border-radius: 8px;
+		border-left: 4px solid #667eea;
+		white-space: pre-wrap;
+		word-wrap: break-word;
+}
+
+.no-content {
+		color: #999;
+		font-style: italic;
+		text-align: center;
+		padding: 2rem;
+}
+
+.note-detail-actions {
+		display: flex;
+		gap: 1rem;
+		justify-content: center;
+		padding-top: 1.5rem;
+		border-top: 2px solid #f0f0f0;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
-		.auth-box, .welcome-box, .profile-box, .users-box {
+		.auth-box, .welcome-box, .profile-box, .users-box, .note-form-box, .note-detail-box {
 				padding: 2rem;
 		}
 		
@@ -558,15 +775,25 @@ footer {
 				grid-template-columns: 1fr;
 		}
 		
-		.users-grid {
+		.users-grid, .notes-grid {
 				grid-template-columns: 1fr;
 		}
 		
-		.form-actions {
+		.form-actions, .note-detail-actions {
 				flex-direction: column;
 		}
 		
 		.form-actions .btn {
+				width: 100%;
+		}
+		
+		.notes-header {
+				flex-direction: column;
+				gap: 1rem;
+				text-align: center;
+		}
+		
+		.notes-header .btn {
 				width: 100%;
 		}
 }

@@ -6,6 +6,11 @@ A simple web application for note-taking with user authentication built with Fla
 
 - User registration with username and password
 - User login and logout functionality
+- **Notes Management:**
+  - Create notes with title and content
+  - View all your notes in a grid layout
+  - View detailed note pages
+  - Notes are sorted by most recently updated
 - User profiles with custom descriptions and avatars
 - Avatar upload (supports PNG, JPG, JPEG, GIF up to 5MB)
 - Browse and view other users' profiles
@@ -94,7 +99,11 @@ A simple web application for note-taking with user authentication built with Fla
 		
 		Navigate to "My Profile" to add a description and upload an avatar.
 
-6. **Browse other users**
+6. **Create and manage notes**
+		
+		Click "My Notes" or "Create Note" to start writing and organizing your notes.
+
+7. **Browse other users**
 		
 		Visit the "Users" page to see other members and their profiles.
 
@@ -118,7 +127,10 @@ VibeNotes1/
     ├── login.html        # Login page
     ├── register.html     # Registration page
     ├── profile.html      # User profile view/edit page
-    └── users.html        # Users list page
+    ├── users.html        # Users list page
+    ├── notes.html        # Notes list page
+    ├── create_note.html  # Create note form
+    └── note_detail.html  # Note detail view page
 ```
 
 ## Database Schema
@@ -130,6 +142,14 @@ VibeNotes1/
 - `description`: TEXT (user's profile description)
 - `avatar`: VARCHAR(255) (filename of user's avatar image)
 - `created_at`: TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
+### notes table
+- `id`: SERIAL PRIMARY KEY
+- `user_id`: INTEGER NOT NULL (foreign key to users.id)
+- `title`: VARCHAR(200) NOT NULL
+- `content`: TEXT
+- `created_at`: TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+- `updated_at`: TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 
 ## Security Notes
 

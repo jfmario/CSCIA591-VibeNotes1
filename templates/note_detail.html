@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}{{ note.title }} - VibeNotes{% endblock %}
+
+{% block content %}
+<div class="note-detail-container">
+		<div class="note-detail-box">
+				<div class="note-detail-header">
+						<h2>{{ note.title }}</h2>
+						<div class="note-detail-meta">
+								<span class="meta-item">Created: {{ note.created_at.strftime('%B %d, %Y at %I:%M %p') }}</span>
+								{% if note.updated_at != note.created_at %}
+										<span class="meta-item">Updated: {{ note.updated_at.strftime('%B %d, %Y at %I:%M %p') }}</span>
+								{% endif %}
+						</div>
+				</div>
+				
+				<div class="note-detail-content">
+						{% if note.content %}
+								<div class="note-content-display">
+										{{ note.content|replace('\n', '<br>')|safe }}
+								</div>
+						{% else %}
+								<p class="no-content">This note has no content.</p>
+						{% endif %}
+				</div>
+				
+				<div class="note-detail-actions">
+						<a href="{{ url_for('notes') }}" class="btn btn-secondary">Back to Notes</a>
+				</div>
+		</div>
+</div>
+{% endblock %}
+

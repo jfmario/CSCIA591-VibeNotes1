@@ -33,6 +33,19 @@ def init_db():
 				)
 		''')
 		
+		# Create notes table
+		cur.execute('''
+				CREATE TABLE IF NOT EXISTS notes (
+						id SERIAL PRIMARY KEY,
+						user_id INTEGER NOT NULL,
+						title VARCHAR(200) NOT NULL,
+						content TEXT,
+						created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+						updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+						FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+				)
+		''')
+		
 		conn.commit()
 		cur.close()
 		conn.close()
