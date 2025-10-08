@@ -10,11 +10,14 @@ A simple web application for note-taking with user authentication built with Fla
   - Create notes with title and content
   - Edit your existing notes
   - Delete notes with confirmation
+  - Attach files to notes (PDF, docs, images, archives, etc.)
+  - Download and delete attachments
   - View all your notes in a grid layout
   - View detailed note pages
   - Notes are sorted by most recently updated
 - User profiles with custom descriptions and avatars
-- Avatar upload (supports PNG, JPG, JPEG, GIF up to 5MB)
+- Avatar upload (supports PNG, JPG, JPEG, GIF up to 10MB)
+- File attachments support (PDF, Office docs, images, archives, media files up to 10MB)
 - Browse and view other users' profiles
 - Session management
 - Secure password hashing
@@ -122,7 +125,8 @@ VibeNotes1/
 ├── README.md             # This file
 ├── static/
 │   ├── style.css         # CSS styles
-│   └── avatars/          # User avatar uploads (created automatically)
+│   ├── avatars/          # User avatar uploads (created automatically)
+│   └── attachments/      # Note file attachments (created automatically)
 └── templates/
     ├── base.html         # Base template with navigation
     ├── home.html         # Home page with quick actions
@@ -153,6 +157,14 @@ VibeNotes1/
 - `content`: TEXT
 - `created_at`: TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 - `updated_at`: TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
+### attachments table
+- `id`: SERIAL PRIMARY KEY
+- `note_id`: INTEGER NOT NULL (foreign key to notes.id)
+- `filename`: VARCHAR(255) NOT NULL (unique filename on disk)
+- `original_filename`: VARCHAR(255) NOT NULL (original user-provided filename)
+- `file_size`: INTEGER (size in bytes)
+- `uploaded_at`: TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 
 ## Security Notes
 

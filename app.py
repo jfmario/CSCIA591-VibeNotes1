@@ -1,10 +1,11 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, send_from_directory
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from database import get_db_connection
 from config import Config
 import functools
 import os
+import uuid
 from pathlib import Path
 
 app = Flask(__name__)
@@ -12,17 +13,32 @@ app.config.from_object(Config)
 
 # Configure upload settings
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'avatars')
+ATTACHMENTS_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'attachments')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+ALLOWED_ATTACHMENT_EXTENSIONS = {
+		'pdf', 'doc', 'docx', 'txt', 'xls', 'xlsx', 'ppt', 'pptx',
+		'png', 'jpg', 'jpeg', 'gif', 'bmp', 'svg',
+		'zip', 'rar', '7z',
+		'mp3', 'wav', 'mp4', 'avi', 'mov',
+		'csv', 'json', 'xml'
+}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5MB max file size
+app.config['ATTACHMENTS_FOLDER'] = ATTACHMENTS_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # 10MB max file size
 
-# Create upload folder if it doesn't exist
+# Create upload folders if they don't exist
 Path(UPLOAD_FOLDER).mkdir(parents=True, exist_ok=True)
+Path(ATTACHMENTS_FOLDER).mkdir(parents=True, exist_ok=True)
 
 
 def allowed_file(filename):
-		"""Check if file extension is allowed"""
+		"""Check if file extension is allowed for avatars"""
 		return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def allowed_attachment(filename):
+		"""Check if file extension is allowed for attachments"""
+		return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_ATTACHMENT_EXTENSIONS
 
 
 def login_required(view):
@@ -276,6 +292,29 @@ def create_note():
 				)
 				note_id = cur.fetchone()['id']
 				conn.commit()
+				
+				# Handle file attachments
+				if 'attachments' in request.files:
+						files = request.files.getlist('attachments')
+						for file in files:
+								if file and file.filename and allowed_attachment(file.filename):
+										# Generate unique filename
+										original_filename = secure_filename(file.filename)
+										ext = original_filename.rsplit('.', 1)[1].lower()
+										unique_filename = f"{uuid.uuid4().hex}.{ext}"
+										file_path = os.path.join(app.config['ATTACHMENTS_FOLDER'], unique_filename)
+										file.save(file_path)
+										
+										# Get file size
+										file_size = os.path.getsize(file_path)
+										
+										# Save attachment info to database
+										cur.execute(
+												'INSERT INTO attachments (note_id, filename, original_filename, file_size) VALUES (%s, %s, %s, %s)',
+												(note_id, unique_filename, original_filename, file_size)
+										)
+										conn.commit()
+				
 				cur.close()
 				conn.close()
 				
@@ -296,19 +335,31 @@ def view_note(note_id):
 				(note_id,)
 		)
 		note = cur.fetchone()
-		cur.close()
-		conn.close()
 		
 		if not note:
+				cur.close()
+				conn.close()
 				flash('Note not found', 'error')
 				return redirect(url_for('notes'))
 		
 		# Check if user owns this note
 		if note['user_id'] != session['user_id']:
+				cur.close()
+				conn.close()
 				flash('You do not have permission to view this note', 'error')
 				return redirect(url_for('notes'))
 		
-		return render_template('note_detail.html', note=note)
+		# Get attachments for this note
+		cur.execute(
+				'SELECT id, filename, original_filename, file_size, uploaded_at FROM attachments WHERE note_id = %s ORDER BY uploaded_at',
+				(note_id,)
+		)
+		attachments = cur.fetchall()
+		
+		cur.close()
+		conn.close()
+		
+		return render_template('note_detail.html', note=note, attachments=attachments)
 
 
 @app.route('/notes/<int:note_id>/edit', methods=['GET', 'POST'])
@@ -361,6 +412,29 @@ def edit_note(note_id):
 						(title, content, note_id)
 				)
 				conn.commit()
+				
+				# Handle file attachments
+				if 'attachments' in request.files:
+						files = request.files.getlist('attachments')
+						for file in files:
+								if file and file.filename and allowed_attachment(file.filename):
+										# Generate unique filename
+										original_filename = secure_filename(file.filename)
+										ext = original_filename.rsplit('.', 1)[1].lower()
+										unique_filename = f"{uuid.uuid4().hex}.{ext}"
+										file_path = os.path.join(app.config['ATTACHMENTS_FOLDER'], unique_filename)
+										file.save(file_path)
+										
+										# Get file size
+										file_size = os.path.getsize(file_path)
+										
+										# Save attachment info to database
+										cur.execute(
+												'INSERT INTO attachments (note_id, filename, original_filename, file_size) VALUES (%s, %s, %s, %s)',
+												(note_id, unique_filename, original_filename, file_size)
+										)
+										conn.commit()
+				
 				cur.close()
 				conn.close()
 				
@@ -399,7 +473,15 @@ def delete_note(note_id):
 				flash('You do not have permission to delete this note', 'error')
 				return redirect(url_for('notes'))
 		
-		# Delete the note
+		# Delete the note (cascade will delete attachments and their files)
+		# Get attachments to delete files from disk
+		cur.execute('SELECT filename FROM attachments WHERE note_id = %s', (note_id,))
+		attachments = cur.fetchall()
+		for attachment in attachments:
+				file_path = os.path.join(app.config['ATTACHMENTS_FOLDER'], attachment['filename'])
+				if os.path.exists(file_path):
+						os.remove(file_path)
+		
 		cur.execute('DELETE FROM notes WHERE id = %s', (note_id,))
 		conn.commit()
 		cur.close()
@@ -407,6 +489,81 @@ def delete_note(note_id):
 		
 		flash('Note deleted successfully!', 'success')
 		return redirect(url_for('notes'))
+
+
+@app.route('/attachments/<int:attachment_id>/download')
+@login_required
+def download_attachment(attachment_id):
+		"""Download an attachment"""
+		conn = get_db_connection()
+		cur = conn.cursor()
+		
+		# Get attachment and note info
+		cur.execute(
+				'SELECT a.filename, a.original_filename, n.user_id FROM attachments a JOIN notes n ON a.note_id = n.id WHERE a.id = %s',
+				(attachment_id,)
+		)
+		attachment = cur.fetchone()
+		cur.close()
+		conn.close()
+		
+		if not attachment:
+				flash('Attachment not found', 'error')
+				return redirect(url_for('notes'))
+		
+		# Check if user owns the note this attachment belongs to
+		if attachment['user_id'] != session['user_id']:
+				flash('You do not have permission to access this attachment', 'error')
+				return redirect(url_for('notes'))
+		
+		return send_from_directory(
+				app.config['ATTACHMENTS_FOLDER'],
+				attachment['filename'],
+				as_attachment=True,
+				download_name=attachment['original_filename']
+		)
+
+
+@app.route('/attachments/<int:attachment_id>/delete', methods=['POST'])
+@login_required
+def delete_attachment(attachment_id):
+		"""Delete an attachment"""
+		conn = get_db_connection()
+		cur = conn.cursor()
+		
+		# Get attachment and note info
+		cur.execute(
+				'SELECT a.filename, a.note_id, n.user_id FROM attachments a JOIN notes n ON a.note_id = n.id WHERE a.id = %s',
+				(attachment_id,)
+		)
+		attachment = cur.fetchone()
+		
+		if not attachment:
+				cur.close()
+				conn.close()
+				flash('Attachment not found', 'error')
+				return redirect(url_for('notes'))
+		
+		# Check if user owns the note this attachment belongs to
+		if attachment['user_id'] != session['user_id']:
+				cur.close()
+				conn.close()
+				flash('You do not have permission to delete this attachment', 'error')
+				return redirect(url_for('notes'))
+		
+		# Delete file from disk
+		file_path = os.path.join(app.config['ATTACHMENTS_FOLDER'], attachment['filename'])
+		if os.path.exists(file_path):
+				os.remove(file_path)
+		
+		# Delete from database
+		cur.execute('DELETE FROM attachments WHERE id = %s', (attachment_id,))
+		conn.commit()
+		cur.close()
+		conn.close()
+		
+		flash('Attachment deleted successfully!', 'success')
+		return redirect(url_for('view_note', note_id=attachment['note_id']))
 
 
 if __name__ == '__main__':

@@ -23,3 +23,7 @@ build/
 static/avatars/*
 !static/avatars/.gitkeep
 
+# File attachments
+static/attachments/*
+!static/attachments/.gitkeep
+

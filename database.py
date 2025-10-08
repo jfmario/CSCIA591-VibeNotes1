@@ -46,6 +46,19 @@ def init_db():
 				)
 		''')
 		
+		# Create attachments table
+		cur.execute('''
+				CREATE TABLE IF NOT EXISTS attachments (
+						id SERIAL PRIMARY KEY,
+						note_id INTEGER NOT NULL,
+						filename VARCHAR(255) NOT NULL,
+						original_filename VARCHAR(255) NOT NULL,
+						file_size INTEGER,
+						uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+						FOREIGN KEY (note_id) REFERENCES notes (id) ON DELETE CASCADE
+				)
+		''')
+		
 		conn.commit()
 		cur.close()
 		conn.close()
