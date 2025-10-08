@@ -52,11 +52,13 @@
 				{% endif %}
 				
 				<div class="note-detail-actions">
-						<a href="{{ url_for('edit_note', note_id=note.id) }}" class="btn btn-primary">Edit Note</a>
-						<form method="POST" action="{{ url_for('delete_note', note_id=note.id) }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this note? This action cannot be undone.');">
-								<button type="submit" class="btn btn-danger">Delete Note</button>
-						</form>
-						<a href="{{ url_for('notes') }}" class="btn btn-secondary">Back to Notes</a>
+						{% if is_owner %}
+								<a href="{{ url_for('edit_note', note_id=note.id) }}" class="btn btn-primary">Edit Note</a>
+								<form method="POST" action="{{ url_for('delete_note', note_id=note.id) }}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this note? This action cannot be undone.');">
+										<button type="submit" class="btn btn-danger">Delete Note</button>
+								</form>
+						{% endif %}
+						<a href="{{ url_for('notes') }}" class="btn btn-secondary">{% if is_owner %}Back to Notes{% else %}Back{% endif %}</a>
 				</div>
 		</div>
 </div>

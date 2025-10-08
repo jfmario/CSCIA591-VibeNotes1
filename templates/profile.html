@@ -52,6 +52,33 @@
 						{% endif %}
 				</div>
 		</div>
+		
+		{% if public_notes %}
+		<div class="profile-box public-notes-section">
+				<h3>Public Notes</h3>
+				<p class="public-notes-subtitle">{{ "Your" if is_own_profile else user.username + "'s" }} public notes visible to all users</p>
+				<div class="public-notes-grid">
+						{% for note in public_notes %}
+								<div class="public-note-card">
+										<a href="{{ url_for('view_note', note_id=note.id) }}" class="public-note-link">
+												<h4>{{ note.title }}</h4>
+												{% if note.content %}
+														<p class="public-note-preview">{{ note.content[:120] }}{% if note.content|length > 120 %}...{% endif %}</p>
+												{% else %}
+														<p class="public-note-preview empty">No content</p>
+												{% endif %}
+												<span class="public-note-date">{{ note.created_at.strftime('%b %d, %Y') }}</span>
+										</a>
+								</div>
+						{% endfor %}
+				</div>
+		</div>
+		{% elif is_own_profile %}
+		<div class="profile-box public-notes-section">
+				<h3>Public Notes</h3>
+				<p class="public-notes-subtitle">You haven't made any notes public yet. Create or edit a note and check "Make this note public" to share it on your profile.</p>
+		</div>
+		{% endif %}
 </div>
 {% endblock %}
 

@@ -40,6 +40,7 @@ def init_db():
 						user_id INTEGER NOT NULL,
 						title VARCHAR(200) NOT NULL,
 						content TEXT,
+						is_public BOOLEAN DEFAULT FALSE,
 						created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 						updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 						FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
@@ -66,7 +67,7 @@ def init_db():
 
 
 def migrate_db():
-		"""Add new columns to existing users table"""
+		"""Add new columns to existing tables"""
 		conn = get_db_connection()
 		cur = conn.cursor()
 		
@@ -92,6 +93,19 @@ def migrate_db():
 								WHERE table_name='users' AND column_name='avatar'
 						) THEN
 								ALTER TABLE users ADD COLUMN avatar VARCHAR(255);
+						END IF;
+				END $$;
+		""")
+		
+		# Add is_public column to notes table if it doesn't exist
+		cur.execute("""
+				DO $$ 
+				BEGIN
+						IF NOT EXISTS (
+								SELECT 1 FROM information_schema.columns 
+								WHERE table_name='notes' AND column_name='is_public'
+						) THEN
+								ALTER TABLE notes ADD COLUMN is_public BOOLEAN DEFAULT FALSE;
 						END IF;
 				END $$;
 		""")

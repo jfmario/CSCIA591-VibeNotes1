@@ -698,6 +698,32 @@ footer {
 		border-color: #667eea;
 }
 
+/* Checkbox Group */
+.checkbox-group {
+		padding: 1rem;
+		background: #f8f9fa;
+		border-radius: 6px;
+		border-left: 4px solid #667eea;
+}
+
+.checkbox-label {
+		display: flex;
+		align-items: center;
+		cursor: pointer;
+		margin-bottom: 0.25rem;
+}
+
+.checkbox-label input[type="checkbox"] {
+		width: auto;
+		margin-right: 0.5rem;
+		cursor: pointer;
+}
+
+.checkbox-label span {
+		font-weight: 500;
+		color: #444;
+}
+
 /* Note Detail */
 .note-detail-container {
 		width: 100%;
@@ -855,6 +881,78 @@ footer {
 		color: white;
 }
 
+/* Public Notes Section */
+.public-notes-section {
+		margin-top: 2rem;
+}
+
+.public-notes-section h3 {
+		color: #667eea;
+		font-size: 1.5rem;
+		margin-bottom: 0.5rem;
+}
+
+.public-notes-subtitle {
+		color: #666;
+		margin-bottom: 1.5rem;
+		font-size: 0.95rem;
+}
+
+.public-notes-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+		gap: 1.25rem;
+}
+
+.public-note-card {
+		border: 2px solid #e0e0e0;
+		border-radius: 8px;
+		padding: 1.25rem;
+		background: white;
+		transition: all 0.3s;
+}
+
+.public-note-card:hover {
+		border-color: #667eea;
+		box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+		transform: translateY(-2px);
+}
+
+.public-note-link {
+		text-decoration: none;
+		color: inherit;
+		display: block;
+}
+
+.public-note-card h4 {
+		color: #667eea;
+		font-size: 1.15rem;
+		margin-bottom: 0.75rem;
+		word-wrap: break-word;
+}
+
+.public-note-preview {
+		color: #666;
+		font-size: 0.9rem;
+		line-height: 1.5;
+		margin-bottom: 0.75rem;
+		min-height: 2.5rem;
+}
+
+.public-note-preview.empty {
+		font-style: italic;
+		color: #999;
+}
+
+.public-note-date {
+		font-size: 0.8rem;
+		color: #888;
+		display: block;
+		margin-top: 0.5rem;
+		padding-top: 0.5rem;
+		border-top: 1px solid #f0f0f0;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
 		.auth-box, .welcome-box, .profile-box, .users-box, .note-form-box, .note-detail-box {
@@ -875,7 +973,7 @@ footer {
 				grid-template-columns: 1fr;
 		}
 		
-		.users-grid, .notes-grid {
+		.users-grid, .notes-grid, .public-notes-grid {
 				grid-template-columns: 1fr;
 		}
 		

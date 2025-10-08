@@ -26,6 +26,14 @@
 								<small>Upload files to attach to this note (max 10MB per file)</small>
 						</div>
 						
+						<div class="form-group checkbox-group">
+								<label class="checkbox-label">
+										<input type="checkbox" id="is_public" name="is_public" value="true">
+										<span>Make this note public</span>
+								</label>
+								<small>Public notes will be visible on your profile to other logged-in users</small>
+						</div>
+						
 						<div class="form-actions">
 								<button type="submit" class="btn btn-primary">Save Note</button>
 								<a href="{{ url_for('notes') }}" class="btn btn-secondary">Cancel</a>

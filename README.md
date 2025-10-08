@@ -10,6 +10,7 @@ A simple web application for note-taking with user authentication built with Fla
   - Create notes with title and content
   - Edit your existing notes
   - Delete notes with confirmation
+  - Mark notes as public to share them on your profile
   - Attach files to notes (PDF, docs, images, archives, etc.)
   - Download and delete attachments
   - View all your notes in a grid layout
@@ -19,6 +20,8 @@ A simple web application for note-taking with user authentication built with Fla
 - Avatar upload (supports PNG, JPG, JPEG, GIF up to 10MB)
 - File attachments support (PDF, Office docs, images, archives, media files up to 10MB)
 - Browse and view other users' profiles
+- Public notes displayed on user profiles
+- Read-only access to other users' public notes
 - Session management
 - Secure password hashing
 - Clean and modern UI with responsive design
@@ -155,6 +158,7 @@ VibeNotes1/
 - `user_id`: INTEGER NOT NULL (foreign key to users.id)
 - `title`: VARCHAR(200) NOT NULL
 - `content`: TEXT
+- `is_public`: BOOLEAN DEFAULT FALSE (whether the note is visible on user's profile)
 - `created_at`: TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 - `updated_at`: TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 

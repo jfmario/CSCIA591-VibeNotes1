@@ -208,9 +208,17 @@ def profile():
 				(session['user_id'],)
 		)
 		user = cur.fetchone()
+		
+		# Get user's public notes
+		cur.execute(
+				'SELECT id, title, content, created_at FROM notes WHERE user_id = %s AND is_public = TRUE ORDER BY created_at DESC',
+				(session['user_id'],)
+		)
+		public_notes = cur.fetchall()
+		
 		cur.close()
 		conn.close()
-		return render_template('profile.html', user=user, is_own_profile=True)
+		return render_template('profile.html', user=user, is_own_profile=True, public_notes=public_notes)
 
 
 @app.route('/users')
@@ -239,15 +247,25 @@ def view_user(user_id):
 				(user_id,)
 		)
 		user = cur.fetchone()
-		cur.close()
-		conn.close()
 		
 		if not user:
+				cur.close()
+				conn.close()
 				flash('User not found', 'error')
 				return redirect(url_for('users'))
 		
+		# Get user's public notes
+		cur.execute(
+				'SELECT id, title, content, created_at FROM notes WHERE user_id = %s AND is_public = TRUE ORDER BY created_at DESC',
+				(user_id,)
+		)
+		public_notes = cur.fetchall()
+		
+		cur.close()
+		conn.close()
+		
 		is_own_profile = (user_id == session['user_id'])
-		return render_template('profile.html', user=user, is_own_profile=is_own_profile)
+		return render_template('profile.html', user=user, is_own_profile=is_own_profile, public_notes=public_notes)
 
 
 @app.route('/notes')
@@ -273,6 +291,7 @@ def create_note():
 		if request.method == 'POST':
 				title = request.form.get('title', '').strip()
 				content = request.form.get('content', '').strip()
+				is_public = request.form.get('is_public') == 'true'
 				
 				# Validation
 				if not title:
@@ -287,8 +306,8 @@ def create_note():
 				conn = get_db_connection()
 				cur = conn.cursor()
 				cur.execute(
-						'INSERT INTO notes (user_id, title, content) VALUES (%s, %s, %s) RETURNING id',
-						(session['user_id'], title, content)
+						'INSERT INTO notes (user_id, title, content, is_public) VALUES (%s, %s, %s, %s) RETURNING id',
+						(session['user_id'], title, content, is_public)
 				)
 				note_id = cur.fetchone()['id']
 				conn.commit()
@@ -331,7 +350,7 @@ def view_note(note_id):
 		conn = get_db_connection()
 		cur = conn.cursor()
 		cur.execute(
-				'SELECT id, user_id, title, content, created_at, updated_at FROM notes WHERE id = %s',
+				'SELECT id, user_id, title, content, is_public, created_at, updated_at FROM notes WHERE id = %s',
 				(note_id,)
 		)
 		note = cur.fetchone()
@@ -342,8 +361,9 @@ def view_note(note_id):
 				flash('Note not found', 'error')
 				return redirect(url_for('notes'))
 		
-		# Check if user owns this note
-		if note['user_id'] != session['user_id']:
+		# Check if user owns this note or if it's public
+		is_owner = note['user_id'] == session['user_id']
+		if not is_owner and not note['is_public']:
 				cur.close()
 				conn.close()
 				flash('You do not have permission to view this note', 'error')
@@ -359,7 +379,7 @@ def view_note(note_id):
 		cur.close()
 		conn.close()
 		
-		return render_template('note_detail.html', note=note, attachments=attachments)
+		return render_template('note_detail.html', note=note, attachments=attachments, is_owner=is_owner)
 
 
 @app.route('/notes/<int:note_id>/edit', methods=['GET', 'POST'])
@@ -371,7 +391,7 @@ def edit_note(note_id):
 		
 		# Get the note
 		cur.execute(
-				'SELECT id, user_id, title, content FROM notes WHERE id = %s',
+				'SELECT id, user_id, title, content, is_public FROM notes WHERE id = %s',
 				(note_id,)
 		)
 		note = cur.fetchone()
@@ -392,6 +412,7 @@ def edit_note(note_id):
 		if request.method == 'POST':
 				title = request.form.get('title', '').strip()
 				content = request.form.get('content', '').strip()
+				is_public = request.form.get('is_public') == 'true'
 				
 				# Validation
 				if not title:
@@ -408,8 +429,8 @@ def edit_note(note_id):
 				
 				# Update the note
 				cur.execute(
-						'UPDATE notes SET title = %s, content = %s, updated_at = CURRENT_TIMESTAMP WHERE id = %s',
-						(title, content, note_id)
+						'UPDATE notes SET title = %s, content = %s, is_public = %s, updated_at = CURRENT_TIMESTAMP WHERE id = %s',
+						(title, content, is_public, note_id)
 				)
 				conn.commit()
 				
