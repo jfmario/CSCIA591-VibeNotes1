@@ -8,6 +8,22 @@
 				<h2>Welcome to VibeNotes, {{ username }}!</h2>
 				<p>You have successfully logged in to your account.</p>
 				<p class="info-text">This is your personal space for notes and ideas.</p>
+				
+				<div class="quick-actions">
+						<h3>Quick Actions</h3>
+						<div class="action-buttons">
+								<a href="{{ url_for('profile') }}" class="action-card">
+										<div class="action-icon">👤</div>
+										<h4>My Profile</h4>
+										<p>Edit your profile and avatar</p>
+								</a>
+								<a href="{{ url_for('users') }}" class="action-card">
+										<div class="action-icon">👥</div>
+										<h4>Browse Users</h4>
+										<p>See other VibeNotes users</p>
+								</a>
+						</div>
+				</div>
 		</div>
 </div>
 {% endblock %}

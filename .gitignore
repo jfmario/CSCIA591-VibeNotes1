@@ -19,3 +19,7 @@ dist/
 build/
 *.egg-info/
 
+# Avatar uploads
+static/avatars/*
+!static/avatars/.gitkeep
+

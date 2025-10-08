@@ -1,11 +1,28 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 from database import get_db_connection
 from config import Config
 import functools
+import os
+from pathlib import Path
 
 app = Flask(__name__)
 app.config.from_object(Config)
+
+# Configure upload settings
+UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'avatars')
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5MB max file size
+
+# Create upload folder if it doesn't exist
+Path(UPLOAD_FOLDER).mkdir(parents=True, exist_ok=True)
+
+
+def allowed_file(filename):
+		"""Check if file extension is allowed"""
+		return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
 def login_required(view):
@@ -121,6 +138,100 @@ def logout():
 		session.clear()
 		flash('You have been logged out', 'success')
 		return redirect(url_for('login'))
+
+
+@app.route('/profile', methods=['GET', 'POST'])
+@login_required
+def profile():
+		"""View and edit user profile"""
+		conn = get_db_connection()
+		cur = conn.cursor()
+		
+		if request.method == 'POST':
+				description = request.form.get('description', '').strip()
+				
+				# Handle avatar upload
+				avatar_filename = None
+				if 'avatar' in request.files:
+						file = request.files['avatar']
+						if file and file.filename and allowed_file(file.filename):
+								# Create unique filename
+								filename = secure_filename(file.filename)
+								ext = filename.rsplit('.', 1)[1].lower()
+								avatar_filename = f"user_{session['user_id']}.{ext}"
+								file.save(os.path.join(app.config['UPLOAD_FOLDER'], avatar_filename))
+				
+				# Update user profile
+				if avatar_filename:
+						cur.execute(
+								'UPDATE users SET description = %s, avatar = %s WHERE id = %s',
+								(description, avatar_filename, session['user_id'])
+						)
+				else:
+						cur.execute(
+								'UPDATE users SET description = %s WHERE id = %s',
+								(description, session['user_id'])
+						)
+				
+				conn.commit()
+				flash('Profile updated successfully!', 'success')
+				
+				# Refresh user data
+				cur.execute(
+						'SELECT id, username, description, avatar FROM users WHERE id = %s',
+						(session['user_id'],)
+				)
+				user = cur.fetchone()
+				cur.close()
+				conn.close()
+				return render_template('profile.html', user=user, is_own_profile=True)
+		
+		# GET request - fetch user data
+		cur.execute(
+				'SELECT id, username, description, avatar FROM users WHERE id = %s',
+				(session['user_id'],)
+		)
+		user = cur.fetchone()
+		cur.close()
+		conn.close()
+		return render_template('profile.html', user=user, is_own_profile=True)
+
+
+@app.route('/users')
+@login_required
+def users():
+		"""View all users"""
+		conn = get_db_connection()
+		cur = conn.cursor()
+		cur.execute(
+				'SELECT id, username, description, avatar FROM users ORDER BY username'
+		)
+		all_users = cur.fetchall()
+		cur.close()
+		conn.close()
+		return render_template('users.html', users=all_users)
+
+
+@app.route('/user/<int:user_id>')
+@login_required
+def view_user(user_id):
+		"""View a specific user's profile"""
+		conn = get_db_connection()
+		cur = conn.cursor()
+		cur.execute(
+				'SELECT id, username, description, avatar FROM users WHERE id = %s',
+				(user_id,)
+		)
+		user = cur.fetchone()
+		cur.close()
+		conn.close()
+		
+		if not user:
+				flash('User not found', 'error')
+				return redirect(url_for('users'))
+		
+		is_own_profile = (user_id == session['user_id'])
+		return render_template('profile.html', user=user, is_own_profile=is_own_profile)
 
 
 if __name__ == '__main__':

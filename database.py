@@ -27,6 +27,8 @@ def init_db():
 						id SERIAL PRIMARY KEY,
 						username VARCHAR(80) UNIQUE NOT NULL,
 						password_hash VARCHAR(255) NOT NULL,
+						description TEXT,
+						avatar VARCHAR(255),
 						created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 				)
 		''')
@@ -37,6 +39,44 @@ def init_db():
 		print("Database initialized successfully!")
 
 
+def migrate_db():
+		"""Add new columns to existing users table"""
+		conn = get_db_connection()
+		cur = conn.cursor()
+		
+		# Add description column if it doesn't exist
+		cur.execute("""
+				DO $$ 
+				BEGIN
+						IF NOT EXISTS (
+								SELECT 1 FROM information_schema.columns 
+								WHERE table_name='users' AND column_name='description'
+						) THEN
+								ALTER TABLE users ADD COLUMN description TEXT;
+						END IF;
+				END $$;
+		""")
+		
+		# Add avatar column if it doesn't exist
+		cur.execute("""
+				DO $$ 
+				BEGIN
+						IF NOT EXISTS (
+								SELECT 1 FROM information_schema.columns 
+								WHERE table_name='users' AND column_name='avatar'
+						) THEN
+								ALTER TABLE users ADD COLUMN avatar VARCHAR(255);
+						END IF;
+				END $$;
+		""")
+		
+		conn.commit()
+		cur.close()
+		conn.close()
+		print("Database migration completed successfully!")
+
+
 if __name__ == '__main__':
 		init_db()
+		migrate_db()
 

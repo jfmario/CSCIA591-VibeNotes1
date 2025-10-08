@@ -6,9 +6,12 @@ A simple web application for note-taking with user authentication built with Fla
 
 - User registration with username and password
 - User login and logout functionality
+- User profiles with custom descriptions and avatars
+- Avatar upload (supports PNG, JPG, JPEG, GIF up to 5MB)
+- Browse and view other users' profiles
 - Session management
 - Secure password hashing
-- Clean and modern UI
+- Clean and modern UI with responsive design
 
 ## Tech Stack
 
@@ -61,7 +64,9 @@ A simple web application for note-taking with user authentication built with Fla
 		python database.py
 		```
 		
-		This will create the `users` table in your database.
+		This will create the `users` table in your database with all necessary columns (including `description` and `avatar` for profiles).
+		
+		**Note**: If you're upgrading from an older version, running `python database.py` will automatically migrate your existing database to add the new profile columns.
 
 ## Running the Application
 
@@ -85,11 +90,19 @@ A simple web application for note-taking with user authentication built with Fla
 		
 		Use your credentials to log in to the application.
 
+5. **Customize your profile**
+		
+		Navigate to "My Profile" to add a description and upload an avatar.
+
+6. **Browse other users**
+		
+		Visit the "Users" page to see other members and their profiles.
+
 ## Project Structure
 
 ```
 VibeNotes1/
-├── app.py                 # Main Flask application
+├── app.py                 # Main Flask application with all routes
 ├── config.py              # Configuration settings
 ├── database.py            # Database connection and initialization
 ├── requirements.txt       # Python dependencies
@@ -97,12 +110,15 @@ VibeNotes1/
 ├── .gitignore            # Git ignore file
 ├── README.md             # This file
 ├── static/
-│   └── style.css         # CSS styles
+│   ├── style.css         # CSS styles
+│   └── avatars/          # User avatar uploads (created automatically)
 └── templates/
-    ├── base.html         # Base template
-    ├── home.html         # Home page
+    ├── base.html         # Base template with navigation
+    ├── home.html         # Home page with quick actions
     ├── login.html        # Login page
-    └── register.html     # Registration page
+    ├── register.html     # Registration page
+    ├── profile.html      # User profile view/edit page
+    └── users.html        # Users list page
 ```
 
 ## Database Schema
@@ -111,6 +127,8 @@ VibeNotes1/
 - `id`: SERIAL PRIMARY KEY
 - `username`: VARCHAR(80) UNIQUE NOT NULL
 - `password_hash`: VARCHAR(255) NOT NULL
+- `description`: TEXT (user's profile description)
+- `avatar`: VARCHAR(255) (filename of user's avatar image)
 - `created_at`: TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 
 ## Security Notes
