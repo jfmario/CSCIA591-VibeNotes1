@@ -20,6 +20,7 @@
 						{% if is_own_profile %}
 								<h3>Edit Your Profile</h3>
 								<form method="POST" action="{{ url_for('profile') }}" enctype="multipart/form-data" class="profile-form">
+										<input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 										<div class="form-group">
 												<label for="description">Description</label>
 												<textarea id="description" name="description" rows="4" placeholder="Tell us about yourself...">{{ user.description or '' }}</textarea>

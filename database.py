@@ -1,24 +1,65 @@
 import psycopg2
 from psycopg2.extras import RealDictCursor
+from psycopg2.pool import ThreadedConnectionPool
+from contextlib import contextmanager
 from config import Config
+
+# Connection pool for better resource management
+# minconn: minimum number of connections
+# maxconn: maximum number of connections
+_pool = None
 
 
 def get_db_connection():
 		"""Create and return a database connection"""
+		global _pool
+		if _pool is None:
+				_pool = ThreadedConnectionPool(
+						1, 20,  # min and max connections
+						host=Config.DB_HOST,
+						port=Config.DB_PORT,
+						user=Config.DB_USER,
+						password=Config.DB_PASSWORD,
+						database=Config.DB_NAME,
+						cursor_factory=RealDictCursor
+				)
+		return _pool.getconn()
+
+
+def return_db_connection(conn):
+		"""Return a connection to the pool"""
+		if _pool:
+				_pool.putconn(conn)
+
+
+@contextmanager
+def get_db():
+		"""Context manager for database connections"""
+		conn = get_db_connection()
+		try:
+				cur = conn.cursor()
+				try:
+						yield cur
+						conn.commit()
+				except Exception:
+						conn.rollback()
+						raise
+				finally:
+						cur.close()
+		finally:
+				return_db_connection(conn)
+
+
+def init_db():
+		"""Initialize the database with required tables"""
+		# Use direct connection for initialization
 		conn = psycopg2.connect(
 				host=Config.DB_HOST,
 				port=Config.DB_PORT,
 				user=Config.DB_USER,
 				password=Config.DB_PASSWORD,
-				database=Config.DB_NAME,
-				cursor_factory=RealDictCursor
+				database=Config.DB_NAME
 		)
-		return conn
-
-
-def init_db():
-		"""Initialize the database with required tables"""
-		conn = get_db_connection()
 		cur = conn.cursor()
 		
 		# Create users table
@@ -68,7 +109,14 @@ def init_db():
 
 def migrate_db():
 		"""Add new columns to existing tables"""
-		conn = get_db_connection()
+		# Use direct connection for migration
+		conn = psycopg2.connect(
+				host=Config.DB_HOST,
+				port=Config.DB_PORT,
+				user=Config.DB_USER,
+				password=Config.DB_PASSWORD,
+				database=Config.DB_NAME
+		)
 		cur = conn.cursor()
 		
 		# Add description column if it doesn't exist

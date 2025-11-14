@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash, send_from_directory
+from flask_wtf.csrf import CSRFProtect
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from database import get_db_connection
@@ -10,14 +11,16 @@ from pathlib import Path
 
 app = Flask(__name__)
 app.config.from_object(Config)
+csrf = CSRFProtect(app)
 
 # Configure upload settings
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'avatars')
 ATTACHMENTS_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'attachments')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+# SVG files removed - they can contain scripts and pose XSS risks
 ALLOWED_ATTACHMENT_EXTENSIONS = {
 		'pdf', 'doc', 'docx', 'txt', 'xls', 'xlsx', 'ppt', 'pptx',
-		'png', 'jpg', 'jpeg', 'gif', 'bmp', 'svg',
+		'png', 'jpg', 'jpeg', 'gif', 'bmp',  # SVG removed for security
 		'zip', 'rar', '7z',
 		'mp3', 'wav', 'mp4', 'avi', 'mov',
 		'csv', 'json', 'xml'
@@ -33,12 +36,48 @@ Path(ATTACHMENTS_FOLDER).mkdir(parents=True, exist_ok=True)
 
 def allowed_file(filename):
 		"""Check if file extension is allowed for avatars"""
-		return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+		if not filename or '.' not in filename:
+				return False
+		# Check for path traversal attempts
+		if '..' in filename or '/' in filename or '\\' in filename:
+				return False
+		return filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
 def allowed_attachment(filename):
 		"""Check if file extension is allowed for attachments"""
-		return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_ATTACHMENT_EXTENSIONS
+		if not filename or '.' not in filename:
+				return False
+		# Check for path traversal attempts
+		if '..' in filename or '/' in filename or '\\' in filename:
+				return False
+		return filename.rsplit('.', 1)[1].lower() in ALLOWED_ATTACHMENT_EXTENSIONS
+
+
+def validate_file_content(file, allowed_extensions):
+		"""Validate file content by checking magic bytes"""
+		import mimetypes
+		if not file or not file.filename:
+				return False
+		
+		# Read first few bytes for magic number detection
+		file.seek(0)
+		file_header = file.read(32)
+		file.seek(0)  # Reset file pointer
+		
+		# Basic magic byte validation for images
+		ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+		if ext in {'png', 'jpg', 'jpeg', 'gif', 'bmp'}:
+				if ext == 'png' and not file_header.startswith(b'\x89PNG'):
+						return False
+				elif ext in {'jpg', 'jpeg'} and not file_header.startswith(b'\xff\xd8\xff'):
+						return False
+				elif ext == 'gif' and not file_header.startswith(b'GIF8'):
+						return False
+				elif ext == 'bmp' and not file_header.startswith(b'BM'):
+						return False
+		
+		return True
 
 
 def login_required(view):
@@ -171,6 +210,13 @@ def profile():
 				if 'avatar' in request.files:
 						file = request.files['avatar']
 						if file and file.filename and allowed_file(file.filename):
+								# Validate file content
+								if not validate_file_content(file, ALLOWED_EXTENSIONS):
+										flash('Invalid file content. Please upload a valid image file.', 'error')
+										cur.close()
+										conn.close()
+										return redirect(url_for('profile'))
+								
 								# Create unique filename
 								filename = secure_filename(file.filename)
 								ext = filename.rsplit('.', 1)[1].lower()
@@ -317,9 +363,15 @@ def create_note():
 						files = request.files.getlist('attachments')
 						for file in files:
 								if file and file.filename and allowed_attachment(file.filename):
+										# Validate file content for images
+										ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+										if ext in {'png', 'jpg', 'jpeg', 'gif', 'bmp'}:
+												if not validate_file_content(file, ALLOWED_ATTACHMENT_EXTENSIONS):
+														flash(f'Invalid file content for {file.filename}. Please upload a valid file.', 'error')
+														continue
+										
 										# Generate unique filename
 										original_filename = secure_filename(file.filename)
-										ext = original_filename.rsplit('.', 1)[1].lower()
 										unique_filename = f"{uuid.uuid4().hex}.{ext}"
 										file_path = os.path.join(app.config['ATTACHMENTS_FOLDER'], unique_filename)
 										file.save(file_path)
@@ -439,9 +491,15 @@ def edit_note(note_id):
 						files = request.files.getlist('attachments')
 						for file in files:
 								if file and file.filename and allowed_attachment(file.filename):
+										# Validate file content for images
+										ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+										if ext in {'png', 'jpg', 'jpeg', 'gif', 'bmp'}:
+												if not validate_file_content(file, ALLOWED_ATTACHMENT_EXTENSIONS):
+														flash(f'Invalid file content for {file.filename}. Please upload a valid file.', 'error')
+														continue
+										
 										# Generate unique filename
 										original_filename = secure_filename(file.filename)
-										ext = original_filename.rsplit('.', 1)[1].lower()
 										unique_filename = f"{uuid.uuid4().hex}.{ext}"
 										file_path = os.path.join(app.config['ATTACHMENTS_FOLDER'], unique_filename)
 										file.save(file_path)
@@ -521,7 +579,7 @@ def download_attachment(attachment_id):
 		
 		# Get attachment and note info
 		cur.execute(
-				'SELECT a.filename, a.original_filename, n.user_id FROM attachments a JOIN notes n ON a.note_id = n.id WHERE a.id = %s',
+				'SELECT a.filename, a.original_filename, n.user_id, n.is_public FROM attachments a JOIN notes n ON a.note_id = n.id WHERE a.id = %s',
 				(attachment_id,)
 		)
 		attachment = cur.fetchone()
@@ -532,8 +590,9 @@ def download_attachment(attachment_id):
 				flash('Attachment not found', 'error')
 				return redirect(url_for('notes'))
 		
-		# Check if user owns the note this attachment belongs to
-		if attachment['user_id'] != session['user_id']:
+		# Check if user owns the note or if the note is public
+		is_owner = attachment['user_id'] == session['user_id']
+		if not is_owner and not attachment['is_public']:
 				flash('You do not have permission to access this attachment', 'error')
 				return redirect(url_for('notes'))
 		
@@ -587,6 +646,51 @@ def delete_attachment(attachment_id):
 		return redirect(url_for('view_note', note_id=attachment['note_id']))
 
 
+@app.errorhandler(404)
+def not_found_error(error):
+		"""Handle 404 errors"""
+		flash('Page not found', 'error')
+		return redirect(url_for('index')), 404
+
+
+@app.errorhandler(500)
+def internal_error(error):
+		"""Handle 500 errors"""
+		flash('An internal error occurred. Please try again later.', 'error')
+		return redirect(url_for('index')), 500
+
+
+@app.errorhandler(403)
+def forbidden_error(error):
+		"""Handle 403 errors"""
+		flash('Access forbidden', 'error')
+		return redirect(url_for('index')), 403
+
+
+@app.errorhandler(413)
+def request_entity_too_large(error):
+		"""Handle file size limit errors"""
+		flash('File too large. Maximum size is 10MB.', 'error')
+		return redirect(request.referrer or url_for('index')), 413
+
+
+@app.errorhandler(Exception)
+def handle_exception(error):
+		"""Handle all unhandled exceptions"""
+		# Log the error in production (implement logging)
+		import logging
+		logging.exception('Unhandled exception occurred')
+		
+		# Don't expose error details in production
+		if app.config.get('DEBUG'):
+				raise  # Re-raise in debug mode
+		
+		flash('An unexpected error occurred. Please try again later.', 'error')
+		return redirect(url_for('index')), 500
+
+
 if __name__ == '__main__':
-		app.run(debug=True)
+		# Never run with debug=True in production
+		# Set FLASK_DEBUG=true in .env only for development
+		app.run(debug=app.config['DEBUG'], host='0.0.0.0')
 
